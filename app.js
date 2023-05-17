@@ -145,7 +145,7 @@ function updateTopRightTable() {
   var bottomData = bottom.getData("active");
 
   var counter = 0;
-  bottomData.forEach(element => {
+  bottomData.forEach(element => { 
     var col = counter % 8;
     var row = Math.floor(counter / 8);
     wellPlate[col][row + 1] = element.name
@@ -166,17 +166,23 @@ bottom.on("renderComplete", function () {
 
 
 document.getElementById("positive-control-btn").addEventListener("click", () => {
+  if (bottom.getData().length >= 96) {
+    return
+  }
   bottom.addRow({name: "POSITVE CONTROL"}, true); // Add to the top
 })
 
 document.getElementById("negative-control-btn").addEventListener("click", () => {
+  if (bottom.getData().length >= 96) {
+    return
+  }
   bottom.addRow({name: "NEGATIVE CONTROL"}, false); // Add to the bottom
 })
 
 
 document.getElementById("download-file-btn").addEventListener("click", function () {
   var data = bottom.getData("active");
-  data.forEach(function (row, index) {
+  data.forEach((row, index) => {
     row.rownum = CELLS[index];
   });
   bottom.setData(data);
