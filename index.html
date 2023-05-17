@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator.min.css" rel="stylesheet">
+  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/danfojs@1.1.2/lib/bundle.min.js"></script>
+  <!-- For saving in xlsx -->
+  <script type="text/javascript" src="https://oss.sheetjs.com/sheetjs/xlsx.full.min.js"></script>
+  <title>Split Window Example</title>
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+    }
+
+    #file-controls {
+      padding: 10px;
+      background: #333;
+      color: white;
+    }
+
+    #file-controls input,
+    #file-controls button {
+      margin-right: 10px;
+    }
+
+    #top {
+      display: flex;
+      height: 35%;
+      background: white;
+      margin: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    #top-left,
+    #top-right {
+      padding: 20px;
+      border-right: 1px solid #ddd;
+      box-sizing: border-box;
+    }
+
+    #top-left {
+      width: 30%;
+      flex-shrink: 0;
+    }
+
+    #top-right {
+      width: 70%;
+      flex-shrink: 0;
+    }
+
+    #bottom {
+      height: 65%;
+      background: white;
+      margin: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="file-controls">
+    <input type="file" id="open-file-btn" accept=".csv, .xlsx">
+    <button id="download-file-btn">Download File</button>
+  </div>
+  <div id="top">
+    <div id="top-left">Top Left</div>
+    <div id="top-right">Top Right</div>
+  </div>
+  <button id="positive-control-btn">Add Positive Control</button>
+  <button id="negative-control-btn">Add Negative Control</button>
+  <div id="bottom"> </div>
+  <script src="app.js"></script>
+</body>
+
+</html>
