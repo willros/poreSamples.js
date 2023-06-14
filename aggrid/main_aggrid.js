@@ -1,6 +1,6 @@
 const gridOptionsBottom = {
     columnDefs: [
-        { field: "name", rowDrag: true },
+        { field: "name" },
         { field: "barcode" },
         { field: "order" },
         { field: "rowname" },
@@ -11,15 +11,14 @@ const gridOptionsBottom = {
         //"blue-row": 'data.name != "POSITVE CONTROL || NEGATIVE CONTROL"',
     },
     defaultColDef: {
-        width: 170,
         sortable: true,
-        flex: 1,
+        flex: 2,
     },
     rowSelection: 'multiple',
     // important to set rowDragManaged to false to prevent row to be added to the table
     rowDragManaged: false,
-    rowDragEntireRow: true,
-    rowDragMultiRow: true,
+    rowDragEntireRow: false,
+    rowDragMultiRow: false,
     onRowDataUpdated: gridChanged,
     onSortChanged: sortChanged,
     onFirstDataRendered: sortChanged,
@@ -46,7 +45,6 @@ const gridOptionsTopLeft = {
     //animateRows: true,
     rowDragMultiRow: true,
     rowDragEntireRow: true,
-    onRowDragEnd: onRowDragEnd,
     rowData: barcodeData,
     onGridReady: (params) => {
         addGridDropZone(params);
@@ -92,13 +90,6 @@ function addGridDropZone(params) {
     params.api.addRowDropZone(dropZoneParams);
 }
 
-
-function onRowDragEnd(e) {
-    to = e.overNode;
-    from = e.nodes;
-    console.log('to', to.data);
-    console.log("from", from);
-}
 
 // ----------------------- PLATE GRID
 const CELLS = [
