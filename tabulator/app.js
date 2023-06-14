@@ -16,7 +16,17 @@ const CELLS = [
 // Custom functions for tables
 var customReceiver = function (fromRow, toRow, fromTable) {
   if (toRow) {
-    toRow.update({ "barcode": fromRow.getData().barcode });
+    const barcode = fromRow.getData().barcode;
+    const unique_barcodes = bottom.getData("active").map(x => x.barcode);
+    if (unique_barcodes.includes(barcode)) {
+      window.alert("barcode already exist in table");
+      return false;
+    }
+    const toBarcode = toRow.getData().barcode;
+    if (toBarcode != undefined && toBarcode != "") {
+      return false;
+    }
+    toRow.update({ "barcode": barcode });
     return true;
   }
   return false;
@@ -38,6 +48,10 @@ var cellColor = function (cell, params) {
   return value;
 }
 
+var sortPlateOrder = function(cell, params) {
+  // TODO
+}
+
 
 var bottom = new Tabulator("#bottom", {
   placeholder: "No Data Available",
@@ -45,9 +59,13 @@ var bottom = new Tabulator("#bottom", {
   reactiveData: true, 
   columns: [
     { title: "name", field: "name" },
-    { title: "age", field: "age" },
-    { title: "Barcode", field: "barcode" },
-    { title: "Row number", field: "rownum" },
+    { title: "age", field: "age" , formatter:"buttonCross", width:40, cellClick:function(e, cell){
+      cell.getRow().delete();
+      }
+    },
+    { title: "Barcode", field: "barcode", validator: "unique", editor: "input"},
+    { title: "Row number", field: "rownum", visible: false},
+    { title: "order", field: "order" , visible: false},
   ],
   movableRows: true,
   movableRowsConnectedTables: "#top-left",
@@ -59,6 +77,7 @@ var bottom = new Tabulator("#bottom", {
     }
   },
 });
+
 
 var barcodes = [
   { barcode: "barcode1" },
@@ -123,25 +142,31 @@ inputFile.addEventListener("change", async () => {
   var file = inputFile.files[0];
   await dfd.readCSV(file).then((dataframe) => {
     df = dataframe;
+    df = df.addColumn("order",
+      new Array(df.shape[0]).fill(0)
+      // [...Array(df.shape[0]).keys()]
+    );
+    df = df.loc({columns:['name', 'age', "order"]});
     const data = dfd.toJSON(df);
     bottom.setData(data);
-    //bottom.hideColumn("rownum");
 
+    // TO wrangle the data
     // let sub = df.loc({
     //   rows: df["age"].lt(40),
     // })
-    df = df.addColumn("new",
-      df.age.$data.map((x) => x * 2)
-    ).addColumn("HAIR",
-      df.hair.$data.map((x) => x.toUpperCase())
-    );
-    df.print()
+    // df = df.addColumn("new",
+    //   df.age.$data.map((x) => x * 2)
+    // ).addColumn("HAIR",
+    //   df.hair.$data.map((x) => x.toUpperCase())
+    // );
+    // df.print()
   }).catch((err) => {
     console.log("ERROR!", err);
   })
 });
 
 function updateTopRightTable() {
+  // "active" important to get activate data 
   var bottomData = bottom.getData("active");
 
   var counter = 0;
@@ -159,24 +184,23 @@ bottom.on("renderComplete", function () {
   if (bottom.getData().length === 0) {
     return
   }
-  // TODO reorder the order of the Rows
-  // use the getData("active")
   updateTopRightTable();
-});
+  });
+
 
 
 document.getElementById("positive-control-btn").addEventListener("click", () => {
   if (bottom.getData().length >= 96) {
     return
   }
-  bottom.addRow({name: "POSITVE CONTROL"}, true); // Add to the top
+  bottom.addRow({name: "POSITVE CONTROL", order: 1}, true); // Add to the top
 })
 
 document.getElementById("negative-control-btn").addEventListener("click", () => {
   if (bottom.getData().length >= 96) {
     return
   }
-  bottom.addRow({name: "NEGATIVE CONTROL"}, false); // Add to the bottom
+  bottom.addRow({name: "NEGATIVE CONTROL", order: -1}, false); // Add to the bottom
 })
 
 
@@ -186,12 +210,21 @@ document.getElementById("download-file-btn").addEventListener("click", function 
     row.rownum = CELLS[index];
   });
   bottom.setData(data);
-  bottom.showColumn("rownum");
   if (data.length > 0) {
+    bottom.showColumn("rownum");
     bottom.download("xlsx", "data.xlsx", { sheetName: "My Data" });
+    bottom.hideColumn("rownum");
   } else {
     console.log("Create the table");
   }
-  bottom.hideColumn("rownum");
+});
+
+document.getElementById("TEST").addEventListener("click", () => {
+  let json_data = bottom.getData("active");
+  let newDf = new dfd.DataFrame(json_data);
+  newDf = newDf.sortValues("order", {ascending: false});
+  let changed = dfd.toJSON(newDf);
+  bottom.clearData();
+
 });
 

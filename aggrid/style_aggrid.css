@@ -1,0 +1,64 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+  }
+
+  #file-controls {
+    padding: 10px;
+    background: #333;
+    color: white;
+  }
+
+  #file-controls input,
+  #file-controls button {
+    margin-right: 10px;
+  }
+
+  #top {
+    display: flex;
+    height: 35%;
+    background: white;
+    margin: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  #top-left,
+  #top-right {
+    padding: 20px;
+    border-right: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+
+  #top-left {
+    width: 30%;
+    flex-shrink: 0;
+  }
+
+  #top-right {
+    width: 70%;
+    flex-shrink: 0;
+  }
+
+  #bottom {
+    height: 65%;
+    background: white;
+    margin: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+
+.green-row {
+    background-color: #ddffdd !important;
+}
+
+.red-row {
+    background-color: #ffdddd !important;
+}
+
+.blue-row {
+    background-color: #ddddff !important;
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Ag-Grid Basic Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/danfojs@1.1.2/lib/bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css" />
+    <link rel="stylesheet" href="style_aggrid.css" />
+    <script src="main_aggrid.js"></script>
+</head>
+
+<body>
+    <div id="file-controls">
+        <input type="file" id="open-file-btn" accept=".csv, .xlsx">
+        <button id="download-file-btn">Download File</button>
+    </div>
+    <div id="top">
+        <div id="top-left" class="ag-theme-alpine"></div>
+        <div id="top-right" class="ag-theme-alpine"></div>
+    </div>
+    <button id="positive-control-btn">Add Positive Control</button>
+    <button id="negative-control-btn">Add Negative Control</button>
+    <div id="bottom" class="ag-theme-alpine"></div>
+</body>
+
+</html>
