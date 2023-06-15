@@ -1,3 +1,7 @@
+
+let topLeftBefore;
+let bottomBefore;
+
 const gridOptionsBottom = {
     columnDefs: [
         { field: "name" },
@@ -49,12 +53,31 @@ const gridOptionsTopLeft = {
     onGridReady: (params) => {
         addGridDropZone(params);
     },
+    onRowDragLeave: (params) => {
+        bottomBefore = getAllRows(gridOptionsBottom, false);
+        console.log(bottomBefore);
+    },
 };
 
+
+function updateData(gridOption, newData) {
+    let oldData = getAllRows(gridOption, false);
+    gridOption.api.applyTransaction({
+        remove: oldData
+    })
+    gridOption.api.setRowData(newData)
+}
+function undo() {
+    updateData(gridOptionsBottom, bottomBefore);
+    updateData(gridOptionsTopLeft, topLeftBefore);
+}
 function addGridDropZone(params) {
     const dropZoneParams = gridOptionsBottom.api.getRowDropZoneParams({
         onDragStop: (params) => {
-            var to = params.overNode.rowIndex;
+            // setup undo
+            topLeftBefore = getAllRows(gridOptionsTopLeft, false)
+
+            let to = params.overNode.rowIndex;
             let from = params.nodes
             let barcodes = from.map(x => x.data.barcode);
 
@@ -83,9 +106,6 @@ function addGridDropZone(params) {
                 })
             });
         },
-        onRowDragEnd: (params) => {
-            return
-        }
     });
     params.api.addRowDropZone(dropZoneParams);
 }
@@ -122,7 +142,6 @@ const gridOptionsTopRight = {
     defaultColDef: {
         flex: 3,
         cellStyle: { color: 'black', border: '1px solid' },
-        editable: true,
     },
     columnDefs: [
         { field: "row", cellStyle: { color: "red" } },
@@ -139,7 +158,6 @@ const gridOptionsTopRight = {
         { field: "11" },
         { field: "12" },
     ],
-    //alignedGrids: gridOptionsBottom,
     rowData: wellPlate,
 };
 
@@ -204,22 +222,39 @@ function updateRowNumber() {
     gridOptionsBottom.api.setRowData(data);
 }
 
+function wrangleAnalytix(df) {
+    df = df.addColumn("order",
+        new Array(df.shape[0]).fill(0)
+    );
+    df = df.addColumn("rowname",
+        CELLS.slice(0, df.shape[0])
+    );
+    // select columns
+    df = df.loc({ columns: ['name', 'age', "order"] });
+
+    let data = dfd.toJSON(df);
+    return data
+}
+
+function chooseDataFormat(df, option) {
+    switch (option) {
+        case "analytix":
+            data = wrangleAnalytix(df);
+            break;
+        default:
+            console.log("no function");
+            break;
+    }
+    return data
+}
+
+
 function dataFromFile() {
     let inputFile = document.getElementById("open-file-btn");
     inputFile.addEventListener("change", async () => {
         let file = inputFile.files[0];
         await dfd.readCSV(file).then((dataframe) => {
-            df = dataframe;
-            df = df.addColumn("order",
-                new Array(df.shape[0]).fill(0)
-            );
-            df = df.addColumn("rowname",
-                CELLS.slice(0, df.shape[0])
-            );
-            // select columns
-            df = df.loc({ columns: ['name', 'age', "order"] });
-            let data = dfd.toJSON(df);
-
+            data = chooseDataFormat(dataframe, document.querySelector("#dataFormat").value);
             gridOptionsBottom.api.setRowData(data);
         }).catch((err) => {
             console.log("ERROR!", err);
@@ -228,18 +263,17 @@ function dataFromFile() {
 }
 
 let POSITIVE_CONTROL = 0;
-let NEGATIVE_CONTROL = 0;
 function addPositive() {
     document.querySelector("#positive-control-btn").addEventListener("click", () => {
         let data = { name: "POSITIVE CONTROL", age: POSITIVE_CONTROL++, order: 1 };
-        let = transaction = {
+        gridOptionsBottom.api.applyTransaction({
             add: [data]
-        };
-        gridOptionsBottom.api.applyTransaction(transaction);
+        });
         sortChanged();
     });
 }
 
+let NEGATIVE_CONTROL = 0;
 function addNegative() {
     document.querySelector("#negative-control-btn").addEventListener("click", () => {
         let data = { name: "NEGATIVE CONTROL", age: NEGATIVE_CONTROL++, order: -1 };
@@ -249,6 +283,18 @@ function addNegative() {
         gridOptionsBottom.api.applyTransaction(transaction);
         sortChanged();
     });
+}
+
+function downloadFile() {
+    document.querySelector("#download-file-btn").addEventListener("click", () => {
+        gridOptionsBottom.api.exportDataAsCsv();
+    })
+}
+
+function undoBtn() {
+    document.querySelector("#undo").addEventListener("click", () => {
+        undo();
+    })
 }
 // --------------------------- ENTRY POINT
 
@@ -272,5 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // buttons
     addPositive();
     addNegative();
-
+    downloadFile();
+    undoBtn();
 });
