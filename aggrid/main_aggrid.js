@@ -1,6 +1,5 @@
 
 let topLeftBefore;
-let bottomBefore;
 
 const gridOptionsBottom = {
     columnDefs: [
@@ -53,10 +52,6 @@ const gridOptionsTopLeft = {
     onGridReady: (params) => {
         addGridDropZone(params);
     },
-    onRowDragLeave: (params) => {
-        bottomBefore = getAllRows(gridOptionsBottom, false);
-        console.log(bottomBefore);
-    },
 };
 
 
@@ -67,19 +62,37 @@ function updateData(gridOption, newData) {
     })
     gridOption.api.setRowData(newData)
 }
+
 function undo() {
-    updateData(gridOptionsBottom, bottomBefore);
+    //updateData(gridOptionsBottom, bottomBefore);
     updateData(gridOptionsTopLeft, topLeftBefore);
+
+    let bottomData = getAllRows(gridOptionsBottom, false);
+    // clear the data
+    gridOptionsBottom.api.applyTransaction({
+        remove: bottomData,
+    });
+
+    barcodes.forEach(barcode => {
+        for ([i, e] of bottomData.entries()) {
+            if (e.barcode === barcode) {
+                bottomData[i].barcode = ""
+            }
+        }
+    })
+    gridOptionsBottom.api.setRowData(bottomData);
 }
+
+let barcodes;
 function addGridDropZone(params) {
     const dropZoneParams = gridOptionsBottom.api.getRowDropZoneParams({
         onDragStop: (params) => {
             // setup undo
             topLeftBefore = getAllRows(gridOptionsTopLeft, false)
 
-            let to = params.overNode.rowIndex;
+            to = params.overNode.rowIndex;
             let from = params.nodes
-            let barcodes = from.map(x => x.data.barcode);
+            barcodes = from.map(x => x.data.barcode);
 
             let data = getAllRows(gridOptionsBottom, false);
             // clear the data
