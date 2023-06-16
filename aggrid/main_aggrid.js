@@ -9,8 +9,8 @@ const gridOptionsBottom = {
         { field: "rowname" },
     ],
     rowClassRules: {
-        "red-row": 'data.name == "NEGATIVE CONTROL"',
-        "green-row": 'data.name == "POSITIVE CONTROL"',
+        "red-row": 'data.name == "Negative CONTROL"',
+        "green-row": 'data.name == "Positive CONTROL"',
         //"blue-row": 'data.name != "POSITVE CONTROL || NEGATIVE CONTROL"',
     },
     defaultColDef: {
@@ -140,15 +140,17 @@ const CELLS = [
     "A12", "B12", "C12", "D12", "E12", "F12", "G12", "H12"
 ];
 
-// Create the well plate
-var wellPlate = [];
-for (var i = 1; i <= 8; i++) {
-    // Adds A-H
-    var row = { row: String.fromCharCode(i + 64) };
-    for (var j = 1; j <= 12; j++) {
-        row[j] = "";
+function createWellPlate() {
+    let wellPlate = [];
+    for (var i = 1; i <= 8; i++) {
+        // Adds A-H
+        var row = { row: String.fromCharCode(i + 64) };
+        for (var j = 1; j <= 12; j++) {
+            row[j] = "";
+        }
+        wellPlate.push(row);
     }
-    wellPlate.push(row);
+    return wellPlate
 }
 
 const gridOptionsTopRight = {
@@ -171,7 +173,6 @@ const gridOptionsTopRight = {
         { field: "11" },
         { field: "12" },
     ],
-    rowData: wellPlate,
 };
 
 
@@ -192,6 +193,13 @@ function getAllRows(gridOption, flat = false) {
 }
 
 function updateWellPlate() {
+    // clear the data
+    wellPlate = createWellPlate();
+    var toRemove = getAllRows(gridOptionsTopRight, false);
+    gridOptionsTopRight.api.applyTransaction({
+        remove: toRemove,
+    });
+
     let counter = 0;
     let bottomData = getAllRows(gridOptionsBottom, false);
 
@@ -202,11 +210,6 @@ function updateWellPlate() {
         counter++
     });
 
-    // clear the data
-    var toRemove = getAllRows(gridOptionsTopRight, false);
-    gridOptionsTopRight.api.applyTransaction({
-        remove: toRemove,
-    });
 
     // add new data
     gridOptionsTopRight.api.setRowData(wellPlate);
@@ -239,9 +242,9 @@ function wrangleAnalytix(df) {
     df = df.addColumn("order",
         new Array(df.shape[0]).fill(0)
     );
-    df = df.addColumn("rowname",
-        CELLS.slice(0, df.shape[0])
-    );
+    // df = df.addColumn("rowname",
+    //     CELLS.slice(0, df.shape[0])
+    // );
     // select columns
     df = df.loc({ columns: ['name', 'age', "order"] });
 
@@ -262,6 +265,7 @@ function chooseDataFormat(df, option) {
 }
 
 
+let originalData;
 function dataFromFile() {
     let inputFile = document.getElementById("open-file-btn");
     inputFile.addEventListener("change", async () => {
@@ -269,32 +273,44 @@ function dataFromFile() {
         await dfd.readCSV(file).then((dataframe) => {
             data = chooseDataFormat(dataframe, document.querySelector("#dataFormat").value);
             gridOptionsBottom.api.setRowData(data);
+            originalData = getAllRows(gridOptionsBottom, false);
         }).catch((err) => {
             console.log("ERROR!", err);
         })
     });
 }
 
-let POSITIVE_CONTROL = 0;
-function addPositive() {
-    document.querySelector("#positive-control-btn").addEventListener("click", () => {
-        let data = { name: "POSITIVE CONTROL", age: POSITIVE_CONTROL++, order: 1 };
+
+function _updateControl(which) {
+    let number = document.querySelector(`#number${which}`).value;
+    if (number === 0) {
+        return
+    }
+    let orderNumber = which === "Positive" ? 1 : -1;
+    for (let i = 0; i < number; i++) {
+        let data = { name: `${which} CONTROL`, age: i, order: orderNumber };
         gridOptionsBottom.api.applyTransaction({
             add: [data]
         });
-        sortChanged();
-    });
+    }
 }
-
-let NEGATIVE_CONTROL = 0;
-function addNegative() {
-    document.querySelector("#negative-control-btn").addEventListener("click", () => {
-        let data = { name: "NEGATIVE CONTROL", age: NEGATIVE_CONTROL++, order: -1 };
-        let = transaction = {
-            add: [data]
-        };
-        gridOptionsBottom.api.applyTransaction(transaction);
-        sortChanged();
+function updateControl() {
+    let oldData = getAllRows(gridOptionsBottom, false);
+    gridOptionsBottom.api.applyTransaction({
+        remove: oldData,
+    })
+    gridOptionsBottom.api.setRowData(originalData);
+    _updateControl("Positive");
+    _updateControl("Negative");
+    updateWellPlate();
+    sortChanged();
+}
+function addControl() {
+    document.querySelector("#numberNegative").addEventListener("change", () => {
+        updateControl();
+    });
+    document.querySelector("#numberPositive").addEventListener("change", () => {
+        updateControl();
     });
 }
 
@@ -309,6 +325,19 @@ function undoBtn() {
         undo();
     })
 }
+
+
+function keyDownListener(e) {
+    // delete the rows 
+    // keyCode 8 is Backspace
+    // keyCode 46 is Delete
+    if (e.keyCode === 8 || e.keyCode === 46) {
+        const sel = gridOptionsBottom.api.getSelectedRows();
+        gridOptionsBottom.api.applyTransaction({ remove: sel });
+    }
+}
+
+
 // --------------------------- ENTRY POINT
 
 
@@ -326,11 +355,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // plate-grid
     let topRight = document.querySelector("#top-right");
     new agGrid.Grid(topRight, gridOptionsTopRight);
+    wellPlate = createWellPlate();
+    gridOptionsTopRight.api.setRowData(wellPlate);
 
     // functions
+    document.addEventListener('keydown', keyDownListener);
     // buttons
-    addPositive();
-    addNegative();
+    addControl();
     downloadFile();
     undoBtn();
 });

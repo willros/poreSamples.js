@@ -16,6 +16,7 @@
         <input type="file" id="open-file-btn" accept=".csv, .xlsx">
         <button id="download-file-btn">Download File</button>
         <button id="undo">Undo</button>
+        <label for="dataFormat">Data Source:</label>
         <select id="dataFormat">
             <option value="analytix">Analytix</option>
             <option value="other">Other</option>
@@ -27,8 +28,10 @@
         <div id="top-left" class="ag-theme-alpine"></div>
         <div id="top-right" class="ag-theme-alpine"></div>
     </div>
-    <button id="positive-control-btn">Add Positive Control</button>
-    <button id="negative-control-btn">Add Negative Control</button>
+    <label for="numberPositive">Positive control</label>
+    <input type="number" id="numberPositive" min="0" max="100" step="1" value="0">
+    <label for="numberNegative">Negative control</label>
+    <input type="number" id="numberNegative" min="0" max="100" step="1" value="0">
     <div id="bottom" class="ag-theme-alpine"></div>
 </body>
 
