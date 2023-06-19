@@ -1,4 +1,3 @@
-
 let topLeftBefore;
 
 const gridOptionsBottom = {
@@ -7,6 +6,7 @@ const gridOptionsBottom = {
         { field: "barcode" },
         { field: "order" },
         { field: "rowname" },
+        { field: "control", hide: true },
     ],
     rowClassRules: {
         "red-row": 'data.name == "Negative CONTROL"',
@@ -22,9 +22,9 @@ const gridOptionsBottom = {
     rowDragManaged: false,
     rowDragEntireRow: false,
     rowDragMultiRow: false,
-    onRowDataUpdated: gridChanged,
-    onSortChanged: sortChanged,
-    onFirstDataRendered: sortChanged,
+    onRowDataUpdated: updateWellPlate,
+    onSortChanged: updateRowNumber,
+    onFirstDataRendered: updateRowNumber,
 };
 
 //  --------------------------------------------------------------------- barcode-grid
@@ -64,7 +64,6 @@ function updateData(gridOption, newData) {
 }
 
 function undo() {
-    //updateData(gridOptionsBottom, bottomBefore);
     updateData(gridOptionsTopLeft, topLeftBefore);
 
     let bottomData = getAllRows(gridOptionsBottom, false);
@@ -215,12 +214,6 @@ function updateWellPlate() {
     gridOptionsTopRight.api.setRowData(wellPlate);
 };
 
-function sortChanged(params) {
-    updateRowNumber();
-}
-function gridChanged(params) {
-    updateWellPlate();
-}
 
 function updateRowNumber() {
     let data = getAllRows(gridOptionsBottom, false);
@@ -242,11 +235,17 @@ function wrangleAnalytix(df) {
     df = df.addColumn("order",
         new Array(df.shape[0]).fill(0)
     );
+    df = df.addColumn("barcode",
+        new Array(df.shape[0]).fill("")
+    );
+    df = df.addColumn("control",
+        new Array(df.shape[0]).fill("SAMPLE")
+    )
     // df = df.addColumn("rowname",
     //     CELLS.slice(0, df.shape[0])
     // );
     // select columns
-    df = df.loc({ columns: ['name', 'age', "order"] });
+    df = df.loc({ columns: ["name", "age", "order", "barcode", "control"] });
 
     let data = dfd.toJSON(df);
     return data
@@ -265,7 +264,6 @@ function chooseDataFormat(df, option) {
 }
 
 
-let originalData;
 function dataFromFile() {
     let inputFile = document.getElementById("open-file-btn");
     inputFile.addEventListener("change", async () => {
@@ -273,7 +271,6 @@ function dataFromFile() {
         await dfd.readCSV(file).then((dataframe) => {
             data = chooseDataFormat(dataframe, document.querySelector("#dataFormat").value);
             gridOptionsBottom.api.setRowData(data);
-            originalData = getAllRows(gridOptionsBottom, false);
         }).catch((err) => {
             console.log("ERROR!", err);
         })
@@ -281,38 +278,110 @@ function dataFromFile() {
 }
 
 
-function _updateControl(which) {
-    let number = document.querySelector(`#number${which}`).value;
-    if (number === 0) {
-        return
-    }
-    let orderNumber = which === "Positive" ? 1 : -1;
-    for (let i = 0; i < number; i++) {
-        let data = { name: `${which} CONTROL`, age: i, order: orderNumber };
-        gridOptionsBottom.api.applyTransaction({
-            add: [data]
-        });
-    }
-}
-function updateControl() {
-    let oldData = getAllRows(gridOptionsBottom, false);
-    gridOptionsBottom.api.applyTransaction({
-        remove: oldData,
-    })
-    gridOptionsBottom.api.setRowData(originalData);
-    _updateControl("Positive");
-    _updateControl("Negative");
-    updateWellPlate();
-    sortChanged();
-}
-function addControl() {
-    document.querySelector("#numberNegative").addEventListener("change", () => {
-        updateControl();
+
+function addPositiveControl() {
+    let button = document.querySelector("#numberPositive")
+    button.addEventListener("change", () => {
+        let data = getAllRows(gridOptionsBottom);
+        let df = new dfd.DataFrame(data);
+        df = df.loc({
+            rows: df["control"].ne("POSITIVE")
+        })
+
+        let number = button.value;
+        if (number < 1) {
+            let jsonData = dfd.toJSON(df)
+            updateData(gridOptionsBottom, jsonData);
+            updateWellPlate();
+            updateRowNumber();
+            return
+        }
+
+        let posControls = [];
+        for (let i = 0; i < number; i++) {
+            let control = { name: "Positive CONTROL", age: i, order: 1, barcode: "BARCODE", control: "POSITIVE" };
+            posControls.push(control);
+        }
+        posControlDf = new dfd.DataFrame(posControls);
+
+        let addedControls = dfd.concat({ dfList: [posControlDf, df], axis: 0 })
+        let addedControlData = dfd.toJSON(addedControls)
+
+        updateData(gridOptionsBottom, addedControlData);
+        updateWellPlate();
+        updateRowNumber();
     });
-    document.querySelector("#numberPositive").addEventListener("change", () => {
-        updateControl();
+}
+
+function addNegativeControl() {
+    let button = document.querySelector("#numberNegative")
+    button.addEventListener("change", () => {
+        let data = getAllRows(gridOptionsBottom);
+        let df = new dfd.DataFrame(data);
+        df = df.loc({
+            rows: df["control"].ne("NEGATIVE")
+        })
+
+        let number = button.value;
+        if (number < 1) {
+            let jsonData = dfd.toJSON(df)
+            updateData(gridOptionsBottom, jsonData);
+            updateWellPlate();
+            updateRowNumber();
+            return
+        }
+
+        let negControls = [];
+        for (let i = 0; i < number; i++) {
+            let control = { name: "Negative CONTROL", age: i, order: -1, barcode: "BARCODE", control: "NEGATIVE" };
+            negControls.push(control);
+        }
+        negControlDf = new dfd.DataFrame(negControls);
+
+        let addedControls = dfd.concat({ dfList: [df, negControlDf], axis: 0 })
+        let addedControlData = dfd.toJSON(addedControls)
+
+        updateData(gridOptionsBottom, addedControlData);
+        updateWellPlate();
+        updateRowNumber();
     });
 }
+
+
+function toDataFrame(gridOption, columnsToShow) {
+    gridOption.columnApi.setColumnsVisible(columnsToShow, true)
+
+    let df_data = getAllRows(gridOptionsBottom, false);
+    let df = new dfd.DataFrame(df_data);
+    // TO wrangle the data
+    // let sub = df.loc({
+    //   rows: df["age"].lt(40),
+    // })
+    // df = df.addColumn("new",
+    //   df.age.$data.map((x) => x * 2)
+    // ).addColumn("HAIR",
+    //   df.hair.$data.map((x) => x.toUpperCase())
+    // );
+    df = df.addColumn("TEST",
+        df.order.$data.map((x) => parseInt(x) * 2)
+    )
+    df = df.addColumn("TEST2",
+        df.control.$data.map((x) => {
+            switch (x) {
+                case "SAMPLE":
+                    return "FUL"
+                    break;
+                default:
+                    return "HEJ"
+                    break;
+            }
+        })
+    )
+    console.log(String(df));
+
+    gridOption.columnApi.setColumnsVisible(columnsToShow, false)
+}
+
 
 function downloadFile() {
     document.querySelector("#download-file-btn").addEventListener("click", () => {
@@ -328,12 +397,14 @@ function undoBtn() {
 
 
 function keyDownListener(e) {
-    // delete the rows 
-    // keyCode 8 is Backspace
-    // keyCode 46 is Delete
+    // delete rows
     if (e.keyCode === 8 || e.keyCode === 46) {
         const sel = gridOptionsBottom.api.getSelectedRows();
         gridOptionsBottom.api.applyTransaction({ remove: sel });
+    }
+    // undo barcodes
+    if (e.ctrlKey && e.key === 'z') {
+        undo();
     }
 }
 
@@ -361,7 +432,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // functions
     document.addEventListener('keydown', keyDownListener);
     // buttons
-    addControl();
     downloadFile();
     undoBtn();
+    addNegativeControl();
+    addPositiveControl();
 });
