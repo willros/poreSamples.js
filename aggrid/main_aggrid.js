@@ -11,7 +11,7 @@ const gridOptionsBottom = {
     rowClassRules: {
         "red-row": 'data.name == "Negative CONTROL"',
         "green-row": 'data.name == "Positive CONTROL"',
-        //"blue-row": 'data.name != "POSITVE CONTROL || NEGATIVE CONTROL"',
+        //"blue-row": '!data.name.includes("CONTROL")',
     },
     defaultColDef: {
         sortable: true,
