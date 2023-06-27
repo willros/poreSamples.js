@@ -5,17 +5,17 @@ const gridOptionsBottom = {
         { field: "sample_id" },
         { field: "barcode" },
         { field: "order" },
-        { field: "rowname" },
         { field: "kit" },
         { field: "flowcell" },
         { field: "sex" },
         { field: "age" },
-        { field: "comment" },
+        { field: "comment", editable: true },
         { field: "control", hide: true },
+        { field: "rowname" },
     ],
     rowClassRules: {
-        "red-row": 'data.name == "Negative CONTROL"',
-        "green-row": 'data.name == "Positive CONTROL"',
+        "red-row": 'data.sample_id == "Negative CONTROL"',
+        "green-row": 'data.sample_id == "Positive CONTROL"',
         //"blue-row": '!data.name.includes("CONTROL")',
     },
     defaultColDef: {
@@ -33,13 +33,6 @@ const gridOptionsBottom = {
 };
 
 //  --------------------------------------------------------------------- barcode-grid
-let barcodeData = [
-    { barcode: "barcode1" },
-    { barcode: "barcode2" },
-    { barcode: "barcode3" },
-    { barcode: "barcode4" },
-    { barcode: "barcode5" },
-];
 
 const gridOptionsTopLeft = {
     defaultColDef: {
@@ -47,13 +40,14 @@ const gridOptionsTopLeft = {
     },
     columnDefs: [
         { field: "barcode", rowDrag: true },
+        { field: "kit" },
     ],
     rowSelection: 'multiple',
     //rowDragManaged: true,
     //animateRows: true,
     rowDragMultiRow: true,
     rowDragEntireRow: true,
-    rowData: barcodeData,
+    rowData: barcodes,
     onGridReady: (params) => {
         addGridDropZone(params);
     },
@@ -81,13 +75,13 @@ function undo() {
         for ([i, e] of bottomData.entries()) {
             if (e.barcode === barcode) {
                 bottomData[i].barcode = ""
+                bottomData[i].kit = ""
             }
         }
     })
     gridOptionsBottom.api.setRowData(bottomData);
 }
 
-let barcodes;
 function addGridDropZone(params) {
     const dropZoneParams = gridOptionsBottom.api.getRowDropZoneParams({
         onDragStop: (params) => {
@@ -97,6 +91,7 @@ function addGridDropZone(params) {
             to = params.overNode.rowIndex;
             let from = params.nodes
             barcodes = from.map(x => x.data.barcode);
+            kits = from.map(x => x.data.kit);
 
             let data = getAllRows(gridOptionsBottom, false);
             // clear the data
@@ -109,10 +104,12 @@ function addGridDropZone(params) {
                 var counter = 0;
                 for (var i = to; i < barcodeLength + to; i++) {
                     data[i].barcode = barcodes[counter]
+                    data[i].kit = kits[counter]
                     counter++
                 }
             } else {
                 data[to].barcode = barcodes[0];
+                data[to].kit = kits[0];
             }
             gridOptionsBottom.api.setRowData(data);
 
@@ -210,7 +207,7 @@ function updateWellPlate() {
     bottomData.forEach(element => {
         var col = counter % 8;
         var row = Math.floor(counter / 8);
-        wellPlate[col][row + 1] = element.name
+        wellPlate[col][row + 1] = element.sample_id;
         counter++
     });
 
@@ -237,7 +234,6 @@ function updateRowNumber() {
 }
 
 function wrangleAnalytix2(df) {
-    console.log(df.columns)
     //df.columns = ["client", "sex", "sample_name", "sample_date", "analysis", "age", "sample_id", "apprvl_date", "result"]
     const columns = df.columns;
     const renameMap = {
@@ -252,7 +248,6 @@ function wrangleAnalytix2(df) {
         [columns[8]]: "result",
     };
     df.rename(renameMap, { axis: 1, inplace: true });
-    console.log(df.columns)
     df = df.dropNa({ axis: 1 });
 
     df = df.addColumn("order",
@@ -306,7 +301,6 @@ function chooseDataFormat(df, option) {
             data = wrangleAnalytix2(df);
             break;
         default:
-            console.log("no function");
             break;
     }
     return data
@@ -317,12 +311,15 @@ function dataFromFile() {
     let inputFile = document.getElementById("open-file-btn");
     inputFile.addEventListener("change", async () => {
         let file = inputFile.files[0];
-        await dfd.readCSV(file, configs = { delimiter: ";", encoding: "utf-8" }).then((dataframe) => {
-            data = chooseDataFormat(dataframe, document.querySelector("#dataFormat").value);
-            gridOptionsBottom.api.setRowData(data);
-        }).catch((err) => {
-            console.log("ERROR!", err);
-        })
+        let dataFormat = document.querySelector("#dataFormat").value;
+        if (dataFormat === "analytix") {
+            await dfd.readCSV(file, configs = { delimiter: ";", encoding: "utf-8" }).then((dataframe) => {
+                data = chooseDataFormat(dataframe, dataFormat);
+                gridOptionsBottom.api.setRowData(data);
+            }).catch((err) => {
+                console.log("ERROR!", err);
+            })
+        }
     });
 }
 
@@ -348,7 +345,7 @@ function addPositiveControl() {
 
         let posControls = [];
         for (let i = 0; i < number; i++) {
-            let control = { name: "Positive CONTROL", age: i, order: 1, barcode: "BARCODE", control: "POSITIVE" };
+            let control = { sample_id: "Positive CONTROL", age: i, order: 1, barcode: "BARCODE", control: "POSITIVE" };
             posControls.push(control);
         }
         posControlDf = new dfd.DataFrame(posControls);
@@ -382,7 +379,7 @@ function addNegativeControl() {
 
         let negControls = [];
         for (let i = 0; i < number; i++) {
-            let control = { name: "Negative CONTROL", age: i, order: -1, barcode: "BARCODE", control: "NEGATIVE" };
+            let control = { sample_id: "Negative CONTROL", age: i, order: -1, barcode: "BARCODE", control: "NEGATIVE" };
             negControls.push(control);
         }
         negControlDf = new dfd.DataFrame(negControls);
@@ -426,8 +423,6 @@ function toDataFrame(gridOption, columnsToShow) {
             }
         })
     )
-    console.log(String(df));
-
     gridOption.columnApi.setColumnsVisible(columnsToShow, false)
 }
 
@@ -471,6 +466,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // barcode-grid
     let topLeft = document.querySelector("#top-left");
     new agGrid.Grid(topLeft, gridOptionsTopLeft);
+
 
     // plate-grid
     let topRight = document.querySelector("#top-right");
