@@ -2,10 +2,15 @@ let topLeftBefore;
 
 const gridOptionsBottom = {
     columnDefs: [
-        { field: "name" },
+        { field: "sample_id" },
         { field: "barcode" },
         { field: "order" },
         { field: "rowname" },
+        { field: "kit" },
+        { field: "flowcell" },
+        { field: "sex" },
+        { field: "age" },
+        { field: "comment" },
         { field: "control", hide: true },
     ],
     rowClassRules: {
@@ -231,6 +236,50 @@ function updateRowNumber() {
     gridOptionsBottom.api.setRowData(data);
 }
 
+function wrangleAnalytix2(df) {
+    console.log(df.columns)
+    //df.columns = ["client", "sex", "sample_name", "sample_date", "analysis", "age", "sample_id", "apprvl_date", "result"]
+    const columns = df.columns;
+    const renameMap = {
+        [columns[0]]: "client",
+        [columns[1]]: "sex",
+        [columns[2]]: "sample_name",
+        [columns[3]]: "sample_date",
+        [columns[4]]: "analysis",
+        [columns[5]]: "age",
+        [columns[6]]: "sample_id",
+        [columns[7]]: "apprvl_date",
+        [columns[8]]: "result",
+    };
+    df.rename(renameMap, { axis: 1, inplace: true });
+    console.log(df.columns)
+    df = df.dropNa({ axis: 1 });
+
+    df = df.addColumn("order",
+        new Array(df.shape[0]).fill(0)
+    );
+    df = df.addColumn("barcode",
+        new Array(df.shape[0]).fill("")
+    );
+    df = df.addColumn("control",
+        new Array(df.shape[0]).fill("SAMPLE")
+    );
+    df = df.addColumn("kit",
+        new Array(df.shape[0]).fill("")
+    );
+    df = df.addColumn("flowcell",
+        new Array(df.shape[0]).fill("")
+    );
+    df = df.addColumn("comment",
+        new Array(df.shape[0]).fill("")
+    );
+    // select columns
+    df = df.loc({ columns: ["sample_id", "barcode", "kit", "flowcell", "sex", "age", "comment", "order", "control"] });
+
+    let data = dfd.toJSON(df);
+    return data
+}
+
 function wrangleAnalytix(df) {
     df = df.addColumn("order",
         new Array(df.shape[0]).fill(0)
@@ -254,7 +303,7 @@ function wrangleAnalytix(df) {
 function chooseDataFormat(df, option) {
     switch (option) {
         case "analytix":
-            data = wrangleAnalytix(df);
+            data = wrangleAnalytix2(df);
             break;
         default:
             console.log("no function");
@@ -268,7 +317,7 @@ function dataFromFile() {
     let inputFile = document.getElementById("open-file-btn");
     inputFile.addEventListener("change", async () => {
         let file = inputFile.files[0];
-        await dfd.readCSV(file).then((dataframe) => {
+        await dfd.readCSV(file, configs = { delimiter: ";", encoding: "utf-8" }).then((dataframe) => {
             data = chooseDataFormat(dataframe, document.querySelector("#dataFormat").value);
             gridOptionsBottom.api.setRowData(data);
         }).catch((err) => {
