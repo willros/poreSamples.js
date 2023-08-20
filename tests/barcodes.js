@@ -1,4 +1,5 @@
-let barcodes = [{'barcode': 'RB01',
+let barcodes = [
+  {'barcode': 'RB01',
   'sequence': 'AAGAAAGTTGTCGGTGTCTTTGTG',
   'kit': 'SQK-RBK110.96'},
  {'barcode': 'RB02',
